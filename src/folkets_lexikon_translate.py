@@ -21,8 +21,8 @@ class FolketsLexikonScraper:
         dirname = os.path.dirname(__file__)
         # Headless browser
         options = webdriver.FirefoxOptions()
-        # options.add_argument('--no-sandbox')
-        # options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--headless')
         self.browser = webdriver.Firefox(executable_path=os.path.join(dirname, '../dependencies/geckodriver'),
                                          options=options)
         self.browser.set_page_load_timeout(30)
@@ -46,6 +46,8 @@ class FolketsLexikonScraper:
             state = self.browser.find_element_by_xpath("""//*[@id="folketsHuvud"]/div/table/tbody/tr[
             1]/td/table/tbody/tr[2]/td/table/tbody/tr[1]/td/div""").text.lower()
 
+            print("Getting data for '{0}'".format(query))
+
             if "successful" not in state:
                 raise LookupException("Object not in the dictionary.")
 
@@ -55,8 +57,6 @@ class FolketsLexikonScraper:
 
             # Click on expand button for more information
             expand.click()
-
-            print("Getting data for '{0}'".format(query))
             time.sleep(0.5)
 
             lookup = self.browser.find_element_by_xpath("""//*[@id="folketsHuvud"]/div/table/tbody/tr[
@@ -64,7 +64,7 @@ class FolketsLexikonScraper:
             2]/table/tbody/tr[1]/td/table/tbody/tr/td[2]/table/tbody""")
 
             res = lookup.text
-            print(res[:10] + "...")
+            # print(res[:10] + "...")
 
             return res
 
