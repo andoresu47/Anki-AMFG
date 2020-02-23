@@ -1,3 +1,4 @@
+import os
 import re
 import requests
 import urllib
@@ -59,7 +60,9 @@ def save_top_result(query_string, urls, thumbnail=True, directory="./"):
         raise Exception("Links contain no images.")
 
     query_string = query_string.replace(' ', '_')
-    f = open('{0}/{1}.jpg'.format(directory, query_string), 'wb')
+    path = os.path.join(directory, query_string + '.jpg')
+
+    f = open(path, 'wb')
     f.write(urllib.request.urlopen(top_result).read())
     f.close()
 
