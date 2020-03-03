@@ -13,13 +13,25 @@ def get_translation(words, example_sentences=True):
     data = {"words": []}
     folkets_lexikon_scraper = FolketsLexikonScraper()
     try:
-        for word in words:
-            word_dict = {"word": word}
+        for elem in words:
+            # Get word and gender if noun
+            split_word = elem.split(' ')
+            gender = ''
+            if split_word[0] == 'en' or split_word[0] == 'ett':
+                gender = split_word[0]
+                word = ' '.join(split_word[1:])
+            else:
+                word = elem
+
+            word_dict = {"word": word, "gender": gender}
 
             try:
                 raw_text = folkets_lexikon_scraper.get_query_data(word)
                 word_translation = extract_translation(raw_text)
+                word_type = extract_type(raw_text)
+
                 word_dict["translation"] = word_translation
+                word_dict["type"] = word_type
 
                 if example_sentences:
                     sentences, sentence_translations = extract_sentences(raw_text)
@@ -50,6 +62,13 @@ def get_translation(words, example_sentences=True):
 def extract_translation(raw_text):
     split_text = raw_text.split('\n')
     return ",".join(split_text[0].split(',')[1:]).strip()
+
+
+def extract_type(raw_text):
+    split_text = raw_text.split('\n')
+    split_description = split_text[0].split(',')
+
+    return split_description[0].split(' ')[-1].strip()
 
 
 def extract_sentences(raw_text):
