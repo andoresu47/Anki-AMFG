@@ -26,15 +26,15 @@ def get_translation(words, example_sentences=True):
             word_dict = {"word": word, "gender": gender}
 
             try:
-                raw_text = folkets_lexikon_scraper.get_query_data(word)
-                word_translation = extract_translation(raw_text)
+                raw_text, order = folkets_lexikon_scraper.get_query_data(word)
+                word_translation = extract_translation(raw_text, order)
                 word_type = extract_type(raw_text)
 
                 word_dict["translation"] = word_translation
                 word_dict["type"] = word_type
 
                 if example_sentences:
-                    sentences, sentence_translations = extract_sentences(raw_text)
+                    sentences, sentence_translations = extract_sentences(raw_text, order)
                     word_dict["sentences"] = {"source": sentences, "translation": sentence_translations}
 
             except LookupException as e:
@@ -59,9 +59,14 @@ def get_translation(words, example_sentences=True):
         folkets_lexikon_scraper.close_browser()
 
 
-def extract_translation(raw_text):
+def extract_translation(raw_text, order):
     split_text = raw_text.split('\n')
-    return ",".join(split_text[0].split(',')[1:]).strip()
+    split_translation = split_text[0].split(',')
+
+    if order[0] == '(Swedish)':
+        return ",".join(split_translation[1:]).strip()
+    else:
+        return " ".join(split_translation[0].split(' ')[:-1]).strip()
 
 
 def extract_type(raw_text):
@@ -71,7 +76,7 @@ def extract_type(raw_text):
     return split_description[0].split(' ')[-1].strip()
 
 
-def extract_sentences(raw_text):
+def extract_sentences(raw_text, order):
     try:
         idx = raw_text.index('Example:')
         examples_raw = raw_text[idx:]
@@ -85,7 +90,10 @@ def extract_sentences(raw_text):
         translations = [item.strip() for item in translations]
         sentences = [item.strip() for item in sentences]
 
-        return sentences, translations
+        if order[0] == '(Swedish)':
+            return sentences, translations
+        else:
+            return translations, sentences
 
     except ValueError as e:
         print("No example sentences found.")

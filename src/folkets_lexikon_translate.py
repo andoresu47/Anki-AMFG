@@ -48,7 +48,7 @@ class FolketsLexikonScraper:
 
             print("Getting data for '{0}'".format(query))
 
-            if "successful" not in state:
+            if "There is no translation of" in state.lower() or "not in the dictionary" in state.lower():
                 raise LookupException("Object not in the dictionary.")
 
             expand = self.browser.find_element_by_xpath("""//*[@id="folketsHuvud"]/div/table/tbody/tr[
@@ -66,7 +66,12 @@ class FolketsLexikonScraper:
             res = lookup.text
             # print(res[:10] + "...")
 
-            return res
+            # Get whether english or swedish text come first
+            translation_row = lookup.find_element_by_class_name('gwt-HTML')
+            flags = translation_row.find_elements_by_tag_name('img')
+            flags_text = [f.get_attribute('alt') for f in flags]
+
+            return res, flags_text
 
         except Exception as e:
             raise LookupException("Could not get data\n\t" + str(e))
