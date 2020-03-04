@@ -1,12 +1,16 @@
+import codecs
+import os
+
 from src.folkets_lexikon_translate import FolketsLexikonScraper, LookupException
 from googletrans import Translator
 from google_speech import Speech
 import src.download_google_images as dgi
 import re
 import traceback
+import json
 
 
-def get_translation(words, example_sentences=True):
+def get_translation(words, example_sentences=True, json_dump_dir=None):
     """ Function to scrape folkets-lexikon dictionary data for a given word translation.
     If unsuccessful, gets translation from google translate.
     """
@@ -49,6 +53,28 @@ def get_translation(words, example_sentences=True):
 
             finally:
                 data["words"].append(word_dict)
+
+        if json_dump_dir is not None:
+            file_path = os.path.join(json_dump_dir, 'data.json')
+            if os.path.isfile(file_path):
+                with codecs.open(file_path, 'r+', 'utf-8') as json_file:
+                    print("Reading json file")
+                    data_old = json.load(json_file)
+                    json_file.seek(0)
+
+                    values_old = [elem['word'] for elem in data_old['words']]
+
+                    for elem in data["words"]:
+                        if elem['word'] not in values_old:
+                            data_old["words"].append(elem)
+
+                    print("Dumping json file")
+                    json.dump(data_old, json_file)
+                    json_file.truncate()
+            else:
+                with codecs.open(file_path, 'w+', 'utf-8') as json_file:
+                    print("Dumping json file")
+                    json.dump(data, json_file)
 
         return data
 

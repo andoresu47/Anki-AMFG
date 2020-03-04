@@ -1,3 +1,7 @@
+import codecs
+import json
+import sys
+
 import src.functions as fn
 import os
 import genanki
@@ -50,7 +54,7 @@ word_model = genanki.Model(
             'name': 'swe_eng_audio_noun',
             'qfmt': '<span style="font-family: Liberation Sans; font-size: 40px;  ">' 
                     '<div class=normal>Listen. {{Audio}}</div>'
-                    '<\span>',
+                    '</span>',
             'afmt': '<span style="font-family: Liberation Sans; font-size: 40px;  ">' 
                     '<div class=normal>{{FrontSide}}</div>'
                     '<hr id="answer">'
@@ -196,9 +200,21 @@ if __name__ == '__main__':
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 
     # Words from which to create cards
-    words = ['egentligen', 'en motspelare', 'annorlunda', 'en lagkamrat', 'ett stycke']
+    # words = ['egentligen', 'en motspelare', 'annorlunda', 'en lagkamrat', 'ett stycke', 'handlar om']
+    with codecs.open(sys.argv[1], 'r', 'utf-8') as f:
+        words = f.read().split('\r\n')
 
     # Get translation and sample sentence(s)
-    scraped_data = fn.get_translation(words)
+    file_path = os.path.join(data_dir, 'data.json')
+    if os.path.isfile(file_path):
+        with codecs.open(file_path, 'r', 'utf-8') as json_file:
+            try:
+                scraped_data = json.load(json_file)
+
+            except Exception as e:
+                print(e)
+                scraped_data = fn.get_translation(words, data_dir)
+    else:
+        scraped_data = fn.get_translation(words, True, data_dir)
 
     generate_deck(scraped_data, data_dir)
