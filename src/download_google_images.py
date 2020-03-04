@@ -23,7 +23,8 @@ def get_image_urls(query_string):
 
     query_string = query_string.replace(' ', '+')
     # Results sorted by relevance
-    tgt_url = 'https://www.google.com.sg/search?q={}&tbm=isch&tbs=sbd:0'.format(query_string)
+    # previous string: 'https://www.google.com.sg/search?q={}&tbm=isch&tbs=sbd:0'
+    tgt_url = 'https://www.google.com.sg/search?as_st=y&tbm=isch&hl=en&as_q={}&as_epq=&as_oq=&as_eq=&imgsz=&imgar=&imgc=&imgcolor=&imgtype=&cr=countrySE&as_sitesearch=se&safe=images&as_filetype=&as_rights='.format(query_string)
 
     r = requests.get(tgt_url, headers=headers)
 
