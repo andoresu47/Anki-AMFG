@@ -30,8 +30,13 @@ if __name__ == '__main__':
         except FileExistsError:
             print("Directory ", word_dir, " already exists")
 
-        # Download the word's top-most search result from google images
-        fn.download_google_search_image(query_string=word, thumbnail=True, directory=word_dir)
+        # Download the word's top-most search result from pixabay,
+        # if no results, then go for google images
+        print("Getting image from Pixa bay")
+        res = fn.download_pixabay(query_string=word, thumbnail=False, directory=word_dir)
+        if not res:
+            print("Getting image from Google images")
+            fn.download_google_search_image(query_string=word, thumbnail=True, directory=word_dir)
 
         # Generate audio file of word in native language
         fn.generate_mp3_file(word, os.path.join(word_dir, '{0}.mp3'.format(word_file)))

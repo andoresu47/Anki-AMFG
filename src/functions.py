@@ -1,6 +1,8 @@
 import codecs
 import os
-
+import urllib
+from urllib.error import HTTPError
+import requests
 from src.folkets_lexikon_translate import FolketsLexikonScraper, LookupException
 from googletrans import Translator
 from google_speech import Speech
@@ -8,6 +10,11 @@ import src.download_google_images as dgi
 import re
 import traceback
 import json
+from dotenv import load_dotenv
+
+USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 ' \
+             'Safari/537.36 '
+headers = {'User-Agent': USER_AGENT}
 
 
 def get_translation(words, example_sentences=True, json_dump_dir=None):
@@ -134,3 +141,48 @@ def generate_mp3_file(text, file_path, language='sv'):
 def download_google_search_image(query_string, thumbnail, directory):
     urls = dgi.get_image_urls(query_string)
     dgi.save_top_result(query_string, urls, thumbnail, directory)
+
+
+def download_pixabay(query_string, thumbnail, directory):
+    dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+    load_dotenv(dotenv_path)
+    api_key = os.getenv("PIXABAY_API_KEY")
+    query_string = query_string.replace(' ', '+')
+
+    target_url = 'https://pixabay.com/api/?key={0}&q={1}&lang=sv'.format(api_key, query_string)
+    json_data = requests.get(target_url).json()
+
+    if json_data['hits']:
+        for result in json_data['hits']:
+            if thumbnail:
+                image_url = result['previewURL']
+            else:
+                image_url = result['webformatURL']
+
+            try:
+                request = urllib.request.Request(image_url, None, headers)
+                response = urllib.request.urlopen(request)
+            except HTTPError:
+                continue
+            break
+
+        query_string = query_string.replace('+', '_')
+        path = os.path.join(directory, query_string + '.jpg')
+
+        f = open(path, 'wb')
+        f.write(response.read())
+        f.close()
+
+        return True
+
+    else:
+        return False
+
+
+if __name__ == '__main__':
+    dirname = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+    word = 'egentligen'
+    word_file = word.replace(' ', '_')
+    word_dir = os.path.join(dirname, word_file)
+
+    download_pixabay(query_string=word, thumbnail=False, directory=word_dir)

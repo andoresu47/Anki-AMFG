@@ -48,7 +48,7 @@ class FolketsLexikonScraper:
 
             print("Getting data for '{0}'".format(query))
 
-            if "There is no translation of" in state.lower() or "not in the dictionary" in state.lower():
+            if "there is no translation of" in state.lower() or "not in the dictionary" in state.lower():
                 raise LookupException("Object not in the dictionary.")
 
             expand = self.browser.find_element_by_xpath("""//*[@id="folketsHuvud"]/div/table/tbody/tr[
