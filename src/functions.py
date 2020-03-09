@@ -11,6 +11,8 @@ import re
 import traceback
 import json
 from dotenv import load_dotenv
+from fuzzywuzzy import fuzz
+from difflib import SequenceMatcher
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 ' \
              'Safari/537.36 '
@@ -37,16 +39,26 @@ def get_translation(words, example_sentences=True, json_dump_dir=None):
             word_dict = {"word": word, "gender": gender}
 
             try:
-                raw_text, order = folkets_lexikon_scraper.get_query_data(word)
-                word_translation = extract_translation(raw_text, order)
-                word_type = extract_type(raw_text)
-
-                word_dict["translation"] = word_translation
-                word_dict["type"] = word_type
+                raw_texts, orders = folkets_lexikon_scraper.get_query_data(word)
+                translations = [extract_translation(raw_text, order) for raw_text, order in zip(raw_texts, orders)]
+                types = [extract_type(raw_text) for raw_text in raw_texts]
 
                 if example_sentences:
-                    sentences, sentence_translations = extract_sentences(raw_text, order)
-                    word_dict["sentences"] = {"source": sentences, "translation": sentence_translations}
+                    sentence_rows = [extract_sentences(raw_text, order) for raw_text, order in zip(raw_texts, orders)]
+                    best_index = find_best_result(word, sentence_rows)
+
+                    word_dict["translation"] = translations[best_index]
+                    word_dict["type"] = types[best_index]
+
+                    word_dict["sentences"] = {"source": sentence_rows[best_index][0],
+                                              "translation": sentence_rows[best_index][1]}
+
+                else:
+                    word_translation = extract_translation(raw_texts[0], orders[0])
+                    word_type = extract_type(raw_texts[0])
+
+                    word_dict["translation"] = word_translation
+                    word_dict["type"] = word_type
 
             except LookupException as e:
                 print(e)
@@ -131,6 +143,21 @@ def extract_sentences(raw_text, order):
     except ValueError as e:
         print("No example sentences found.")
         return [], []
+
+
+def find_best_result(word, sentence_rows):
+    best_index = 0
+    best_score = 0
+    for i in range(len(sentence_rows)):
+        swedish_sentences = sentence_rows[i][0]
+        if swedish_sentences:
+            sentence = swedish_sentences[0]
+            score = fuzz.partial_ratio(word, sentence.lower())
+            if score > best_score:
+                best_index = i
+                best_score = score
+
+    return best_index
 
 
 def generate_mp3_file(text, file_path, language='sv'):
