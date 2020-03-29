@@ -160,6 +160,72 @@ def find_best_result(word, sentence_rows):
     return best_index
 
 
+def get_score_and_substring(string1, string2):
+    """Modified version of fuzzy wuzzy's get_raw_score to return not only the score
+    but the starting and ending indices of the matched substring.
+    """
+
+    sm = SequenceMatcher(None, string1, string2)
+    matching_blocks = sm.get_matching_blocks()
+
+    best_score = 0
+    start = 0
+    end = 0
+    substr = ''
+    for block in matching_blocks:
+        string2_starting_index = 0
+        if (block[1] - block[0] > 0):
+            string2_starting_index = block[1] - block[0]
+        string2_ending_index = string2_starting_index + len(string1)
+        string2_substr = string2[string2_starting_index:string2_ending_index]
+
+        sm2 = SequenceMatcher(None, string1, string2_substr)
+        similarity_ratio = sm2.ratio()
+        if similarity_ratio > best_score:
+            best_score = similarity_ratio
+            start = string2_starting_index
+            end = string2_ending_index
+            substr = string2_substr
+
+    return best_score, start, end, substr
+
+
+def get_start_idx(spaces, query):
+    """ Function to get the starting index of a word intersected by a query index in a string.
+
+    Args:
+        spaces: list of indices of spaces in a sentence
+        query: index to compute intersection.
+    """
+
+    l = len(spaces)
+    if query < spaces[0]:
+        return 0
+    if spaces[l - 1] < query:
+        return spaces[l - 1] + 1
+    for i in range(1, l):
+        if spaces[i - 1] < query < spaces[i]:
+            return spaces[i - 1] + 1
+
+
+def get_end_idx(spaces, query, string_length):
+    """ Function to get the ending index of a word intersected by a query index in a string.
+
+    Args:
+        spaces: list of indices of spaces in a sentence
+        query: index to compute intersection.
+    """
+
+    l = len(spaces)
+    if query <= spaces[0]:
+        return spaces[0] - 1
+    if spaces[l - 1] < query:
+        return string_length - 1
+    for i in range(1, l):
+        if spaces[i - 1] < query <= spaces[i]:
+            return spaces[i] - 1
+
+
 def generate_mp3_file(text, file_path, language='sv'):
     speech = Speech(text, language)
     speech.save(file_path)

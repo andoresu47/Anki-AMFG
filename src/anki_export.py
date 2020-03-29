@@ -1,5 +1,6 @@
 import codecs
 import json
+import re
 import sys
 
 import src.functions as fn
@@ -7,7 +8,7 @@ import os
 import genanki
 
 word_model = genanki.Model(
-    345678,
+    345675,
     'noun',
     fields=[
         {'name': 'Swedish'},
@@ -79,7 +80,7 @@ word_model = genanki.Model(
 )
 
 sentence_model = genanki.Model(
-    345679,
+    345676,
     'noun_sentence',
     fields=[
         {'name': 'Swedish'},
@@ -179,6 +180,19 @@ def generate_deck(scraped_data, data_dir):
         deck.add_note(word_notes)
 
         if sentences_source:
+            score, start_idx, end_idx, _ = fn.get_score_and_substring(word, sentence_source.lower())
+            # If word does appear in sentence, then it gets bold-faced
+            if score > 0.5:
+                # Identify full words within best word match indices
+                spaces = [m.start() for m in re.finditer(' ', sentence_source)]
+                start_idx = fn.get_start_idx(spaces, start_idx)
+                end_idx = fn.get_end_idx(spaces, end_idx - 1, len(sentence_source)) + 1
+
+                sentence_start = sentence_source[:start_idx]
+                sentence_word = sentence_source[start_idx:end_idx]
+                sentence_end = sentence_source[end_idx:]
+                sentence_source = '{0}<b>{1}</b>{2}'.format(sentence_start, sentence_word, sentence_end)
+
             sentence_notes = genanki.Note(sentence_model,
                                           ['<b>{0}</b>'.format(word),
                                            gender,
