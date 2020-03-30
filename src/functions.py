@@ -43,9 +43,14 @@ def get_translation(words, example_sentences=True, json_dump_dir=None):
                 translations = [extract_translation(raw_text, order) for raw_text, order in zip(raw_texts, orders)]
                 types = [extract_type(raw_text) for raw_text in raw_texts]
 
+                row_sections = [get_all_sections(row) for row in raw_texts]
+
                 if example_sentences:
-                    sentence_rows = [extract_sentences(raw_text, order) for raw_text, order in zip(raw_texts, orders)]
+                    sentence_rows = [extract_sentences(get_section(sections, 'example'), order)
+                                     for sections, order in zip(row_sections, orders)]
+                    print(sentence_rows)
                     best_index = find_best_result(word, sentence_rows)
+                    print(best_index)
 
                     word_dict["translation"] = translations[best_index]
                     word_dict["type"] = types[best_index]
@@ -121,28 +126,68 @@ def extract_type(raw_text):
     return split_description[0].split(' ')[-1].strip()
 
 
-def extract_sentences(raw_text, order):
-    try:
-        idx = raw_text.index('Example:')
-        examples_raw = raw_text[idx:]
+def extract_sentences(examples_raw, order):
+    # If raw text is not None
+    if examples_raw:
+        try:
+            # Matches what is in between parenthesis (english translation)
+            # translations = re.findall('(?<=\()(.*)(?=\))', examples_raw)
+            split_sentences = examples_raw.split('\n')
+            translations = [re.findall('\(.*?\)', sentence)[-1].replace('(', '').replace(')', '')
+                            for sentence in split_sentences]
 
-        # Matches what is in between parenthesis (english translation)
-        translations = re.findall('(?<=\()(.*)(?=\))', examples_raw)
-        # Matches what is after Example and linebreak but not english translation
-        sentences = re.findall('(?:(?<=Example: )|(?<=\n))(.+)(?= \()', examples_raw)
+            # If there are no translations for an example sentence, then we discard all
+            if not translations:
+                raise ValueError
+            # Matches what is after Example and linebreak but not english translation
+            # sentences = re.findall('(?:(?<=Example: )|(?<=\n))(.+)(?= \()', examples_raw)
 
-        # Remove any trailing whitespaces
-        translations = [item.strip() for item in translations]
-        sentences = [item.strip() for item in sentences]
+            raw_sentences = examples_raw.replace('Example:', '').strip().split('\n')
 
-        if order[0] == '(Swedish)':
-            return sentences, translations
-        else:
-            return translations, sentences
+            sentences = [re.sub('( ,| |,)$', '', sentence.replace('(' + translation + ')', ''))
+                         for sentence, translation in zip(raw_sentences, translations)]
 
-    except ValueError as e:
+            # Filter sentences to only include those with translations
+            filtered_translations = []
+            filtered_sentences = []
+            for translation, sentence in zip(translations, sentences):
+                if translation:
+                    filtered_translations.append(translation)
+                    filtered_sentences.append(sentence)
+
+            # Remove any trailing whitespaces
+            translations = [item.strip() for item in filtered_translations]
+            sentences = [item.strip() for item in filtered_sentences]
+
+            if order[0] == '(Swedish)':
+                return sentences, translations
+            else:
+                return translations, sentences
+
+        except ValueError as e:
+            print("No example sentences found.")
+            return [], []
+    else:
         print("No example sentences found.")
         return [], []
+
+
+def get_all_sections(raw_text):
+    sections = re.findall('\n[a-zA-Z]+:', raw_text)
+    indices = [raw_text.index(x) for x in sections]
+    intervals = [-1] + indices + [len(raw_text)]
+
+    sections = [raw_text[intervals[i - 1] + 1:intervals[i]] for i in range(1, len(intervals))]
+    sections[0] = 'Main: ' + sections[0]
+
+    return sections
+
+
+def get_section(sections, query):
+    for elem in sections:
+        if query.lower() + ':' in elem.lower():
+            return elem
+    return None
 
 
 def find_best_result(word, sentence_rows):
@@ -274,8 +319,10 @@ def download_pixabay(query_string, thumbnail, directory):
 
 if __name__ == '__main__':
     dirname = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
-    word = 'egentligen'
-    word_file = word.replace(' ', '_')
-    word_dir = os.path.join(dirname, word_file)
+    word = 'regel'
+    get_translation([word])
 
-    download_pixabay(query_string=word, thumbnail=False, directory=word_dir)
+    # word_file = word.replace(' ', '_')
+    # word_dir = os.path.join(dirname, word_file)
+    #
+    # download_pixabay(query_string=word, thumbnail=False, directory=word_dir)

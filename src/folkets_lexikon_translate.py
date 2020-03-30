@@ -25,7 +25,13 @@ class FolketsLexikonScraper:
         options = webdriver.FirefoxOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--headless')
+        # Prevent updating
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference("app.update.auto", False)
+        profile.set_preference("app.update.enabled", False)
+
         self.browser = webdriver.Firefox(executable_path=os.path.join(dirname, '../dependencies/geckodriver'),
+                                         firefox_profile=profile,
                                          options=options)
         self.browser.set_page_load_timeout(30)
 
