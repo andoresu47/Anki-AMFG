@@ -44,6 +44,7 @@ def get_translation(words, example_sentences=True, json_dump_dir=None):
                 types = [extract_type(raw_text) for raw_text in raw_texts]
 
                 row_sections = [get_all_sections(row) for row in raw_texts]
+                print(row_sections)
 
                 if example_sentences:
                     sentence_rows = [extract_sentences(get_section(sections, 'example'), order)
@@ -129,12 +130,30 @@ def extract_type(raw_text):
 def extract_sentences(examples_raw, order):
     # If raw text is not None
     if examples_raw:
+        print(examples_raw)
         try:
             # Matches what is in between parenthesis (english translation)
             # translations = re.findall('(?<=\()(.*)(?=\))', examples_raw)
             split_sentences = examples_raw.split('\n')
-            translations = [re.findall('\(.*?\)', sentence)[-1].replace('(', '').replace(')', '')
-                            for sentence in split_sentences]
+            try:
+                translations = []
+                for sentence in split_sentences:
+                    # If there are multiple parenthesis, see if they are nested or they are 'orthogonal'
+                    translation_test = re.findall('\((.*)\)', sentence)[0]
+                    if '(' in translation_test and ')' in translation_test:
+                        idx_open = translation_test.index('(')
+                        idx_close = translation_test.index(')')
+
+                        if idx_close < idx_open:
+                            translation_test = re.findall('\(.*?\)', sentence)[-1]
+                            # Translation without enclosing parenthesis
+                            n = len(translation_test)
+                            translation_test = translation_test[1:n - 1]
+
+                    translations.append(translation_test)
+
+            except Exception as e:
+                raise ValueError
 
             # If there are no translations for an example sentence, then we discard all
             if not translations:
@@ -319,7 +338,7 @@ def download_pixabay(query_string, thumbnail, directory):
 
 if __name__ == '__main__':
     dirname = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
-    word = 'regel'
+    word = 'nyfiken'
     get_translation([word])
 
     # word_file = word.replace(' ', '_')
