@@ -44,14 +44,11 @@ def get_translation(words, example_sentences=True, json_dump_dir=None):
                 types = [extract_type(raw_text) for raw_text in raw_texts]
 
                 row_sections = [get_all_sections(row) for row in raw_texts]
-                print(row_sections)
 
                 if example_sentences:
                     sentence_rows = [extract_sentences(get_section(sections, 'example'), order)
                                      for sections, order in zip(row_sections, orders)]
-                    print(sentence_rows)
                     best_index = find_best_result(word, sentence_rows)
-                    print(best_index)
 
                     word_dict["translation"] = translations[best_index]
                     word_dict["type"] = types[best_index]
@@ -130,7 +127,6 @@ def extract_type(raw_text):
 def extract_sentences(examples_raw, order):
     # If raw text is not None
     if examples_raw:
-        print(examples_raw)
         try:
             # Matches what is in between parenthesis (english translation)
             # translations = re.findall('(?<=\()(.*)(?=\))', examples_raw)
@@ -141,14 +137,18 @@ def extract_sentences(examples_raw, order):
                     # If there are multiple parenthesis, see if they are nested or they are 'orthogonal'
                     translation_test = re.findall('\((.*)\)', sentence)[0]
                     if '(' in translation_test and ')' in translation_test:
-                        idx_open = translation_test.index('(')
-                        idx_close = translation_test.index(')')
+                        idx_open = [m.start() for m in re.finditer('\(', translation_test)]
+                        idx_close = [m.start() for m in re.finditer('\)', translation_test)]
+                        idx_close.reverse()
 
-                        if idx_close < idx_open:
-                            translation_test = re.findall('\(.*?\)', sentence)[-1]
-                            # Translation without enclosing parenthesis
-                            n = len(translation_test)
-                            translation_test = translation_test[1:n - 1]
+                        # If remaining parentheses are unbalanced, then the original pair is wrong
+                        for i, j in zip(idx_open, idx_close):
+                            if i > j:
+                                translation_test = re.findall('\(.*?\)', sentence)[-1]
+                                # Translation without enclosing parenthesis
+                                n = len(translation_test)
+                                translation_test = translation_test[1:n - 1]
+                                break
 
                     translations.append(translation_test)
 
@@ -167,21 +167,23 @@ def extract_sentences(examples_raw, order):
                          for sentence, translation in zip(raw_sentences, translations)]
 
             # Filter sentences to only include those with translations
+            # remove trailing whitespaces
+            # and remove any text between parenthesis (in source language sentence)
             filtered_translations = []
             filtered_sentences = []
             for translation, sentence in zip(translations, sentences):
                 if translation:
-                    filtered_translations.append(translation)
-                    filtered_sentences.append(sentence)
-
-            # Remove any trailing whitespaces
-            translations = [item.strip() for item in filtered_translations]
-            sentences = [item.strip() for item in filtered_sentences]
+                    filtered_translations.append(translation.strip())
+                    parenthesis_phrase = re.findall('\((.*)\)', sentence)
+                    if parenthesis_phrase:
+                        sentence = sentence.replace('(' + parenthesis_phrase[0] + ')', '')
+                        sentence = sentence.replace('  ', ' ')
+                    filtered_sentences.append(sentence.strip())
 
             if order[0] == '(Swedish)':
-                return sentences, translations
+                return filtered_sentences, translations
             else:
-                return translations, sentences
+                return translations, filtered_sentences
 
         except ValueError as e:
             print("No example sentences found.")
@@ -338,7 +340,7 @@ def download_pixabay(query_string, thumbnail, directory):
 
 if __name__ == '__main__':
     dirname = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
-    word = 'nyfiken'
+    word = 'attityd'
     get_translation([word])
 
     # word_file = word.replace(' ', '_')

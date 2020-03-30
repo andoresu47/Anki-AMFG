@@ -8,7 +8,7 @@ import os
 import genanki
 
 word_model = genanki.Model(
-    345675,
+    345175,
     'noun',
     fields=[
         {'name': 'Swedish'},
@@ -80,7 +80,7 @@ word_model = genanki.Model(
 )
 
 sentence_model = genanki.Model(
-    345676,
+    345671,
     'noun_sentence',
     fields=[
         {'name': 'Swedish'},
